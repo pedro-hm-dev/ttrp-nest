@@ -5,6 +5,9 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CampaignsModule } from './campaigns/campaigns.module.js';
+import { CharactersModule } from './characters/characters.module.js';
+import { ScenesModule } from './scenes/scenes.module.js';
 
 @Module({
   imports: [
@@ -17,6 +20,9 @@ import { AuthModule } from './auth/auth.module.js';
     }),
     UsersModule,
     AuthModule,
+    CampaignsModule,
+    CharactersModule,
+    ScenesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
