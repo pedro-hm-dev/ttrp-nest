@@ -8,6 +8,11 @@ import { AuthModule } from './auth/auth.module.js';
 import { CampaignsModule } from './campaigns/campaigns.module.js';
 import { CharactersModule } from './characters/characters.module.js';
 import { ScenesModule } from './scenes/scenes.module.js';
+import { UnitsModule } from './units/units.module.js';
+import { HandoutsModule } from './handouts/handouts.module.js';
+import { DrawingsModule } from './drawings/drawings.module.js';
+import { WallsModule } from './walls/walls.module.js';
+import { FogAreasModule } from './fog-areas/fog-areas.module.js';
 
 @Module({
   imports: [
@@ -23,6 +28,11 @@ import { ScenesModule } from './scenes/scenes.module.js';
     CampaignsModule,
     CharactersModule,
     ScenesModule,
+    UnitsModule,
+    HandoutsModule,
+    DrawingsModule,
+    WallsModule,
+    FogAreasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -17,6 +17,7 @@ import { CreateCampaignDto } from './dto/create-campaign.dto.js';
 import { UpdateCampaignDto } from './dto/update-campaign.dto.js';
 import { InvitePlayerDto } from './dto/invite-player.dto.js';
 import { SetPermissionDto } from './dto/toggle-edit-permission.dto.js';
+import { CampaignRole } from '../common/enums/campaign-role.enum.js';
 
 @ApiTags('Campaigns')
 @ApiBearerAuth()
@@ -47,7 +48,7 @@ export class CampaignsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update campaign (owner only)' })
+  @ApiOperation({ summary: 'Update campaign (owner or master)' })
   update(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: UpdateCampaignDto,
@@ -66,17 +67,22 @@ export class CampaignsController {
   }
 
   @Post(':id/invite')
-  @ApiOperation({ summary: 'Invite player by email (owner only)' })
+  @ApiOperation({ summary: 'Invite player by email (owner or master)' })
   invite(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: InvitePlayerDto,
     @CurrentUser() user: { user_id: string },
   ) {
-    return this.campaignsService.invitePlayer(id, dto.email, user.user_id);
+    return this.campaignsService.invitePlayer(
+      id,
+      dto.email,
+      dto.role ?? CampaignRole.PLAY,
+      user.user_id,
+    );
   }
 
   @Delete(':id/players/:player_id')
-  @ApiOperation({ summary: 'Remove a player from campaign (owner only)' })
+  @ApiOperation({ summary: 'Remove a player from campaign (owner or master)' })
   removePlayer(
     @Param('id', ParseObjectIdPipe) id: string,
     @Param('player_id', ParseObjectIdPipe) playerId: string,
@@ -85,28 +91,28 @@ export class CampaignsController {
     return this.campaignsService.removePlayer(id, playerId, user.user_id);
   }
 
-  @Patch(':id/permissions')
-  @ApiOperation({ summary: 'Set permission level for a player (owner only)' })
-  setPermission(
+  @Patch(':id/roles')
+  @ApiOperation({ summary: 'Set campaign role for a player (owner only)' })
+  setRole(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() dto: SetPermissionDto,
     @CurrentUser() user: { user_id: string },
   ) {
-    return this.campaignsService.setPermission(
+    return this.campaignsService.setRole(
       id,
       dto.player_id,
-      dto.level,
+      dto.role,
       user.user_id,
     );
   }
 
-  @Delete(':id/permissions/:player_id')
-  @ApiOperation({ summary: 'Remove permission for a player (owner only)' })
-  removePermission(
+  @Delete(':id/roles/:player_id')
+  @ApiOperation({ summary: 'Remove role for a player (owner only)' })
+  removeRole(
     @Param('id', ParseObjectIdPipe) id: string,
     @Param('player_id', ParseObjectIdPipe) playerId: string,
     @CurrentUser() user: { user_id: string },
   ) {
-    return this.campaignsService.removePermission(id, playerId, user.user_id);
+    return this.campaignsService.removeRole(id, playerId, user.user_id);
   }
 }

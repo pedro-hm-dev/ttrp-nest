@@ -9,7 +9,7 @@ import { Campaign, CampaignDocument } from './schemas/campaign.schema.js';
 import { CreateCampaignDto } from './dto/create-campaign.dto.js';
 import { UpdateCampaignDto } from './dto/update-campaign.dto.js';
 import { UsersService } from '../users/users.service.js';
-import { PlayerPermission } from '../common/enums/player-permission.enum.js';
+import { CampaignRole } from '../common/enums/campaign-role.enum.js';
 
 @Injectable()
 export class CampaignsService {
@@ -51,7 +51,7 @@ export class CampaignsService {
     userId: string,
   ): Promise<CampaignDocument> {
     const campaign = await this.findById(id);
-    this.assertOwner(campaign, userId);
+    this.assertOwnerOrMaster(campaign, userId);
     Object.assign(campaign, dto);
     return campaign.save();
   }
@@ -65,21 +65,24 @@ export class CampaignsService {
   async invitePlayer(
     campaignId: string,
     email: string,
+    role: CampaignRole,
     userId: string,
   ): Promise<CampaignDocument> {
     const campaign = await this.findById(campaignId);
-    this.assertOwner(campaign, userId);
+    this.assertOwnerOrMaster(campaign, userId);
 
     const player = await this.usersService.findByEmail(email);
     if (!player) throw new NotFoundException('User not found with that email');
 
-    const playerId = player._id as Types.ObjectId;
+    const playerId = player._id;
 
     if (campaign.players.some((p) => p.equals(playerId))) {
       return campaign;
     }
 
     campaign.players.push(playerId);
+    campaign.permissions.push({ player: playerId, role });
+    campaign.markModified('permissions');
     return campaign.save();
   }
 
@@ -89,7 +92,7 @@ export class CampaignsService {
     userId: string,
   ): Promise<CampaignDocument> {
     const campaign = await this.findById(campaignId);
-    this.assertOwner(campaign, userId);
+    this.assertOwnerOrMaster(campaign, userId);
 
     campaign.players = campaign.players.filter(
       (p) => !p.equals(new Types.ObjectId(playerId)),
@@ -100,10 +103,10 @@ export class CampaignsService {
     return campaign.save();
   }
 
-  async setPermission(
+  async setRole(
     campaignId: string,
     playerId: string,
-    level: PlayerPermission,
+    role: CampaignRole,
     userId: string,
   ): Promise<CampaignDocument> {
     const campaign = await this.findById(campaignId);
@@ -119,16 +122,16 @@ export class CampaignsService {
     );
 
     if (idx >= 0) {
-      campaign.permissions[idx].level = level;
+      campaign.permissions[idx].role = role;
     } else {
-      campaign.permissions.push({ player: targetId, level });
+      campaign.permissions.push({ player: targetId, role });
     }
 
     campaign.markModified('permissions');
     return campaign.save();
   }
 
-  async removePermission(
+  async removeRole(
     campaignId: string,
     playerId: string,
     userId: string,
@@ -148,6 +151,18 @@ export class CampaignsService {
     }
   }
 
+  assertOwnerOrMaster(campaign: CampaignDocument, userId: string): void {
+    const uid = new Types.ObjectId(userId);
+    if (campaign.owner._id.equals(uid)) return;
+
+    const role = this.getPlayerRole(campaign, userId);
+    if (role === CampaignRole.MASTER) return;
+
+    throw new ForbiddenException(
+      'Only the campaign owner or a master can do this',
+    );
+  }
+
   isMember(campaign: CampaignDocument, userId: string): boolean {
     const uid = new Types.ObjectId(userId);
     return (
@@ -156,27 +171,18 @@ export class CampaignsService {
     );
   }
 
-  getPlayerPermission(
+  getPlayerRole(
     campaign: CampaignDocument,
     userId: string,
-  ): PlayerPermission | null {
+  ): CampaignRole | null {
     const uid = new Types.ObjectId(userId);
     const entry = campaign.permissions.find((p) => p.player.equals(uid));
-    return entry?.level ?? null;
+    return entry?.role ?? null;
   }
 
-  canEditCharacter(
-    campaign: CampaignDocument,
-    characterOwnerId: string,
-    userId: string,
-  ): boolean {
+  isOwnerOrMaster(campaign: CampaignDocument, userId: string): boolean {
     const uid = new Types.ObjectId(userId);
-
     if (campaign.owner._id.equals(uid)) return true;
-
-    if (characterOwnerId === userId) return true;
-
-    const permission = this.getPlayerPermission(campaign, userId);
-    return permission === PlayerPermission.EDIT;
+    return this.getPlayerRole(campaign, userId) === CampaignRole.MASTER;
   }
 }

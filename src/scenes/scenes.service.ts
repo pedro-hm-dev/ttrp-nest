@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Scene, SceneDocument } from './schemas/scene.schema.js';
@@ -20,16 +16,18 @@ export class ScenesService {
   async create(dto: CreateSceneDto, userId: string): Promise<SceneDocument> {
     const campaign = await this.campaignsService.findById(dto.campaign_id);
 
-    if (!this.campaignsService.isMember(campaign, userId)) {
-      throw new ForbiddenException('You are not a member of this campaign');
-    }
+    this.campaignsService.assertOwnerOrMaster(campaign, userId);
 
     return this.sceneModel.create({
       name: dto.name,
       background_image: dto.background_image,
+      background_color: dto.background_color,
       grid_width: dto.grid_width,
       grid_height: dto.grid_height,
+      grid_type: dto.grid_type,
+      cell_size: dto.cell_size,
       description: dto.description,
+      fog_of_war: dto.fog_of_war ?? false,
       is_active: dto.is_active ?? false,
       campaign: dto.campaign_id,
     });
@@ -54,7 +52,7 @@ export class ScenesService {
     const campaign = await this.campaignsService.findById(
       scene.campaign.toString(),
     );
-    this.campaignsService.assertOwner(campaign, userId);
+    this.campaignsService.assertOwnerOrMaster(campaign, userId);
 
     Object.assign(scene, dto);
     return scene.save();
@@ -65,7 +63,7 @@ export class ScenesService {
     const campaign = await this.campaignsService.findById(
       scene.campaign.toString(),
     );
-    this.campaignsService.assertOwner(campaign, userId);
+    this.campaignsService.assertOwnerOrMaster(campaign, userId);
 
     await scene.deleteOne();
   }

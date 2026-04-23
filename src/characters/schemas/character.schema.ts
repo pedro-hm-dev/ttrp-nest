@@ -1,6 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { CharacterPermission } from '../../common/enums/character-permission.enum.js';
+
+export class CharacterPermissionEntry {
+  @ApiProperty({ description: 'Player user ID' })
+  player!: Types.ObjectId;
+
+  @ApiProperty({ enum: CharacterPermission, description: 'Permission level' })
+  level!: CharacterPermission;
+}
 
 export type CharacterDocument = HydratedDocument<Character>;
 
@@ -14,13 +23,43 @@ export class Character {
   @Prop()
   avatar?: string;
 
+  @ApiProperty({ required: false, description: 'Token image for map display' })
+  @Prop()
+  tokenImage?: string;
+
   @ApiProperty({ required: false })
   @Prop({ type: Object, default: {} })
   attributes!: Record<string, unknown>;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Public notes / bio' })
   @Prop()
-  notes?: string;
+  publicNotes?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Private GM-only notes',
+  })
+  @Prop()
+  gmNotes?: string;
+
+  @ApiProperty({
+    type: [CharacterPermissionEntry],
+    description: 'Per-player character permissions',
+  })
+  @Prop({
+    type: [
+      {
+        player: { type: Types.ObjectId, ref: 'User' },
+        level: {
+          type: String,
+          enum: CharacterPermission,
+          default: CharacterPermission.VIEW,
+        },
+      },
+    ],
+    default: [],
+  })
+  permissions!: CharacterPermissionEntry[];
 
   @ApiProperty({ description: 'Campaign this character belongs to' })
   @Prop({ type: Types.ObjectId, ref: 'Campaign', required: true, index: true })

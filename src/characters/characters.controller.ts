@@ -15,6 +15,7 @@ import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe.js';
 import { CharactersService } from './characters.service.js';
 import { CreateCharacterDto } from './dto/create-character.dto.js';
 import { UpdateCharacterDto } from './dto/update-character.dto.js';
+import { SetCharacterPermissionDto } from './dto/set-character-permission.dto.js';
 
 @ApiTags('Characters')
 @ApiBearerAuth()
@@ -46,7 +47,8 @@ export class CharactersController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update character (owner, campaign owner, or with permission)',
+    summary:
+      'Update character (owner, campaign owner/master, or with edit permission)',
   })
   update(
     @Param('id', ParseObjectIdPipe) id: string,
@@ -58,12 +60,42 @@ export class CharactersController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Delete character (character owner or campaign owner)',
+    summary: 'Delete character (character owner, campaign owner, or master)',
   })
   remove(
     @Param('id', ParseObjectIdPipe) id: string,
     @CurrentUser() user: { user_id: string },
   ) {
     return this.charactersService.remove(id, user.user_id);
+  }
+
+  @Patch(':id/permissions')
+  @ApiOperation({
+    summary:
+      'Set character permission for a player (owner, campaign owner, or master)',
+  })
+  setPermission(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: SetCharacterPermissionDto,
+    @CurrentUser() user: { user_id: string },
+  ) {
+    return this.charactersService.setPermission(
+      id,
+      dto.player_id,
+      dto.level,
+      user.user_id,
+    );
+  }
+
+  @Delete(':id/permissions/:player_id')
+  @ApiOperation({
+    summary: 'Remove character permission for a player',
+  })
+  removePermission(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('player_id', ParseObjectIdPipe) playerId: string,
+    @CurrentUser() user: { user_id: string },
+  ) {
+    return this.charactersService.removePermission(id, playerId, user.user_id);
   }
 }

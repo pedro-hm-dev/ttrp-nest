@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
-import { PlayerPermission } from '../../common/enums/player-permission.enum.js';
+import { CampaignRole } from '../../common/enums/campaign-role.enum.js';
 
-export class CampaignPermission {
+export class CampaignMember {
   @ApiProperty({ description: 'Player user ID' })
   player!: Types.ObjectId;
 
-  @ApiProperty({ enum: PlayerPermission, description: 'Permission level' })
-  level!: PlayerPermission;
+  @ApiProperty({ enum: CampaignRole, description: 'Campaign role' })
+  role!: CampaignRole;
 }
 
 export type CampaignDocument = HydratedDocument<Campaign>;
@@ -36,23 +36,23 @@ export class Campaign {
   players!: Types.ObjectId[];
 
   @ApiProperty({
-    type: [CampaignPermission],
-    description: 'Per-player permission levels',
+    type: [CampaignMember],
+    description: 'Per-player campaign roles',
   })
   @Prop({
     type: [
       {
         player: { type: Types.ObjectId, ref: 'User' },
-        level: {
+        role: {
           type: String,
-          enum: PlayerPermission,
-          default: PlayerPermission.VIEW,
+          enum: CampaignRole,
+          default: CampaignRole.PLAY,
         },
       },
     ],
     default: [],
   })
-  permissions!: CampaignPermission[];
+  permissions!: CampaignMember[];
 }
 
 export const CampaignSchema = SchemaFactory.createForClass(Campaign);
